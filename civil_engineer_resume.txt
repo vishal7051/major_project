@@ -1,0 +1,19 @@
+SENIOR STRUCTURAL CIVIL ENGINEER
+Email: civil@example.com
+Phone: +1 555-9876
+
+OBJECTIVE
+Licensed Structural Engineer with 8 years of experience designing robust concrete and steel buildings, managing site construction, and performing detailed structural analysis.
+
+TECHNICAL SKILLS
+- Software & CAD: AutoCAD, Revit, BIM (Building Information Modeling), PLAXIS
+- Structural Analysis: SAP2000, ETABS, foundation design, slope stability
+- Concrete & Steel Engineering: Concrete Design, Steel Design, Eurocodes, IS Codes
+- Project Management: MS Project, Cost Estimation, Site Supervision, Quantity Surveying
+
+PROFESSIONAL EXPERIENCE
+Senior Structural Engineer | Core Infrastructure Partners (2021 - Present)
+- Developed detailed structural layouts, reinforcement details, and site estimation checklists for multi-story concrete structures.
+- Performed rigorous static and dynamic structural analysis using ETABS and SAP2000, ensuring compliance with local building codes.
+- Supervised concrete technology implementation, quality control audits, and foundation safety inspections at major construction sites.
+- Spearheaded building information modeling (BIM) workflows across multi-disciplinary architecture and construction teams.

@@ -1,0 +1,129 @@
+{
+  "name": "Job Scraper & Skill Extractor (Market Insights)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days"
+            }
+          ]
+        }
+      },
+      "id": "2d1b7736-1e65-45dc-9bc2-48e02b85e0de",
+      "name": "Schedule Trigger (Daily)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.adzuna.com/v1/api/jobs/us/search/1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "app_id",
+              "value": "YOUR_ADZUNA_APP_ID"
+            },
+            {
+              "name": "app_key",
+              "value": "YOUR_ADZUNA_APP_KEY"
+            },
+            {
+              "name": "what",
+              "value": "Software Engineer"
+            },
+            {
+              "name": "results_per_page",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1b34adfa-a108-4107-acc7-1234bcdd1234",
+      "name": "Fetch Jobs (Adzuna)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = $input.all()[0].json.results;\nconst textBlob = jobs.map(j => j.description).join(' ');\n\n// Very basic mock extraction - ideally use an LLM or predefined regex lists\nconst coreSkills = ['React', 'Python', 'AWS', 'TypeScript', 'Node.js', 'SQL', 'Docker', 'Kubernetes'];\nconst foundSkills = [];\n\ncoreSkills.forEach(skill => {\n  const regex = new RegExp(`\\\\b${skill}\\\\b`, 'gi');\n  const matches = textBlob.match(regex);\n  if (matches) {\n    foundSkills.push({\n      skill: skill,\n      count: matches.length\n    });\n  }\n});\n\n// Sort and calculate faux frequency % based on max count\nfoundSkills.sort((a,b) => b.count - a.count);\nconst maxCount = foundSkills[0]?.count || 1;\n\nconst insights = foundSkills.slice(0, 8).map(s => ({\n  skill: s.skill,\n  frequency: Math.round((s.count / maxCount) * 100)\n}));\n\nconst simpleSkills = insights.map(i => i.skill);\n\nreturn {\n  json: {\n    role: \"Software Engineer\",\n    skills: simpleSkills,\n    insights: insights\n  }\n};"
+      },
+      "id": "58c3db82-628b-4a57-8ae3-9ab8c44dc1b7",
+      "name": "Extract Skills & Frequency",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/webhooks/market-trends",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Push to FastAPI Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        880,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (Daily)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Jobs (Adzuna)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Jobs (Adzuna)": {
+      "main": [
+        [
+          {
+            "node": "Extract Skills & Frequency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Skills & Frequency": {
+      "main": [
+        [
+          {
+            "node": "Push to FastAPI Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

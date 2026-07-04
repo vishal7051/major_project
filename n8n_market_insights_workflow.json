@@ -1,0 +1,245 @@
+{
+  "name": "Job Scraper & Skill Extractor (Market Insights)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days"
+            }
+          ]
+        }
+      },
+      "id": "2d1b7736-1e65-45dc-9bc2-48e02b85e0de",
+      "name": "Schedule Trigger (Daily)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "roles",
+              "value": "={{ [\"Software Engineer\", \"Web Developer\", \"UI/UX Designer\", \"Data Scientist\", \"Machine Learning Engineer\", \"Civil Engineer\", \"Mechanical Engineer\", \"Electrical Engineer\", \"Business Analyst\", \"Marketing Manager\", \"HR Manager\", \"Banking\", \"Financial Analyst\", \"Accountant\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-all-roles-id",
+      "name": "Set All Roles",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-through-roles-id",
+      "name": "Loop Through Roles",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "currentRole",
+              "value": "={{ $json.roles }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-current-role-id",
+      "name": "Set Current Role",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        600,
+        200
+      ]
+    },
+    {
+      "name": "Fetch Jobs from JSearch India",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "GET",
+        "url": "https://jsearch.p.rapidapi.com/search",
+        "options": {
+          "retryOnFail": true,
+          "timeout": 30000
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.currentRole }} jobs in India"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "num_pages",
+              "value": "1"
+            },
+            {
+              "name": "country",
+              "value": "in"
+            }
+          ]
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": "6512cf9e15msha96f8649afe2102p18b106jsn4f23113f4d0f"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "jsearch.p.rapidapi.com"
+            }
+          ]
+        },
+        "responseFormat": "json"
+      },
+      "id": "1b34adfa-a108-4107-acc7-1234bcdd1234",
+      "position": [
+        800,
+        200
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst skillsList = {\n  \"Software Engineer\":         [\"React\", \"Python\", \"TypeScript\", \"Node.js\", \"AWS\", \"Docker\", \"System Design\"],\n  \"Web Developer\":             [\"React\", \"Next.js\", \"TypeScript\", \"Tailwind CSS\", \"Node.js\", \"MongoDB\"],\n  \"Data Scientist\":            [\"Python\", \"Machine Learning\", \"SQL\", \"Pandas\", \"TensorFlow\", \"Tableau\"],\n  \"Machine Learning Engineer\": [\"Python\", \"TensorFlow\", \"PyTorch\", \"MLOps\", \"Deep Learning\", \"AWS\"],\n  \"UI/UX Designer\":            [\"Figma\", \"User Research\", \"Wireframing\", \"Prototyping\", \"Adobe XD\"],\n  \"Business Analyst\":          [\"SQL\", \"Tableau\", \"Agile\", \"Jira\", \"Requirements Gathering\", \"Excel\"],\n  \"Civil Engineer\":            [\"AutoCAD\", \"Revit\", \"Structural Analysis\", \"Project Management\", \"STAAD Pro\"],\n  \"Mechanical Engineer\":       [\"SolidWorks\", \"AutoCAD\", \"MATLAB\", \"FEA\", \"Thermodynamics\"],\n  \"Financial Analyst\":         [\"Excel\", \"Financial Modeling\", \"SQL\", \"Power BI\", \"Corporate Finance\"],\n  \"Electrical Engineer\": [\"Circuit Design\", \"PLC\", \"MATLAB\", \"Power Systems\", \"AutoCAD Electrical\"],\n  \"Marketing Manager\":   [\"SEO\", \"Google Analytics\", \"Content Strategy\", \"CRM\", \"Social Media\"],\n  \"HR Manager\":          [\"Talent Acquisition\", \"Employee Relations\", \"HRIS\", \"Labor Laws\", \"Performance Management\"],\n  \"Banking\":             [\"Risk Management\", \"Financial Modeling\", \"Excel\", \"Regulatory Compliance\", \"Credit Analysis\"],\n  \"Accountant\":          [\"QuickBooks\", \"Excel\", \"GAAP\", \"Tax Preparation\", \"Financial Reporting\"]\n};\n\nfor (const item of items) {\n  const jobResults = item.json.data || [];\n\n  const role = $('Set Current Role').first().json.currentRole\n               || \"Software Engineer\";\n\n  const skills = skillsList[role] || skillsList[\"Software Engineer\"];\n  const skillCounts = {};\n\n  for (const skill of skills) {\n    skillCounts[skill] = 0;\n  }\n\n  const totalJobs = jobResults.length || 1;\n\n  for (const job of jobResults) {\n    const text = (\n      (job.job_title || \"\") + \" \" +\n      (job.job_description || \"\") + \" \" +\n      (job.job_highlights?.Qualifications?.join(\" \") || \"\") + \" \" +\n      (job.job_highlights?.Responsibilities?.join(\" \") || \"\")\n    ).toLowerCase();\n\n    for (const skill of skills) {\n      if (text.includes(skill.toLowerCase())) {\n        skillCounts[skill]++;\n      }\n    }\n  }\n\n  const insights = skills.map(skill => ({\n    skill: skill,\n    frequency: Math.round((skillCounts[skill] / totalJobs) * 100)\n  }));\n\n  insights.sort((a, b) => b.frequency - a.frequency);\n\n  results.push({\n    json: {\n      role: role,\n      skills: skills,\n      insights: insights\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "58c3db82-628b-4a57-8ae3-9ab8c44dc1b7",
+      "name": "Count Skill Frequency",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/webhooks/market-trends",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Push to FastAPI Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        200
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (Daily)": {
+      "main": [
+        [
+          {
+            "node": "Set All Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set All Roles": {
+      "main": [
+        [
+          {
+            "node": "Loop Through Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Through Roles": {
+      "main": [
+        [
+          {
+            "node": "Set Current Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Current Role": {
+      "main": [
+        [
+          {
+            "node": "Fetch Jobs from JSearch India",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Jobs from JSearch India": {
+      "main": [
+        [
+          {
+            "node": "Count Skill Frequency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Skill Frequency": {
+      "main": [
+        [
+          {
+            "node": "Push to FastAPI Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Push to FastAPI Backend": {
+      "main": [
+        [
+          {
+            "node": "Loop Through Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
